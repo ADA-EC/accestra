@@ -5,3 +5,4 @@ Desenvolvido por:
 * Érika Hortência
 * Fernando Rosalini Calaza
 * João Marco Barros
+* Marcos Pietrucci
