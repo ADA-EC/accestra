@@ -300,15 +300,6 @@ void setup()
 //*****************************************************************************************//
 void loop() 
 {
-  for(int m = 0; m < indc; m++)
-  {
-    Serial.println("aaaaaaaaaaaaaaaa");
-    Serial.println(cadastro[m].nome);
-    Serial.println("   ");
-    Serial.println(cadastro[m].nusp);
-    Serial.print("\n\n");    
-  }
-  delay(1000000);
   
   if(digitalRead(but_in))//Apertaram o botão interno, movimentar o sistema
   {
@@ -343,14 +334,6 @@ void loop()
   }
 
   Serial.println(F("**Cartão detectado:**"));
-
-  //-------------------------------------------
-
-  //mfrc522.PICC_DumpDetailsToSerial(&(mfrc522.uid)); //dump some details about the card
-
-  //mfrc522.PICC_DumpToSerial(&(mfrc522.uid));      //uncomment this to see all blocks in hex
-
-  //-------------------------------------------
 
   byte buffer1[18];
 
@@ -423,6 +406,7 @@ void loop()
 
   //Tenho que esperar o RFID completar seu ciclo, para, se necessário, eu poder utilizá-lo no cadastro
    detecta_membro(nusp_l);
+   
   //Zerando as variaveis globais
   for(int j = 0; j < 16; j++)
   {
