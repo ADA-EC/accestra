@@ -4,8 +4,23 @@
 
 //***************************************************************************************** teste de teste//
 
+/*
+  SD card leitura/escrita
+
+ Como conectar o modulo SD no circuito:
+ ** MOSI - pin 11
+ ** MISO - pin 12
+ ** CLK - pin 13
+ ** CS - pin 4 (para MKRZero SD: SDCARD_SS_PIN)
+ 
+ */
+
 #include <SPI.h>
 #include <MFRC522.h>
+#include <SD.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <Servo.h>
 
 #define RST_PIN         9  // Configurable, see typical pin layout above
@@ -19,10 +34,16 @@
 #define TEMP_MEMBRO     22 // Número que os cartões de membros "visitantes" terão - Esses não contarão com uma música personalizada
 
 //Configurações do servo motor
+#define aberto 110 // Definir a posição aberto (ângulo em graus) do servo (varia de 0 até 180)
+#define fechado 0  // Definir a posição fechado (ângulo em graus) do servo (varia de 0 até 180)
 Servo servo;      // Criar o objeto servo
-int aberto = 110; // Definir a posição aberto (ângulo em graus) do servo (varia de 0 até 180)
-int fechado = 0;  // Definir a posição fechado (ângulo em graus) do servo (varia de 0 até 180)
 
+/*********************** CARTÃO SD ******************/
+
+File myFile;
+//Segundo forum, não tem problema os outros pinos estarem sobrepostos
+
+/***************************************************/
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance
 
 struct membro{
@@ -30,8 +51,8 @@ struct membro{
   long nusp; //int em arduinos com ATmega possui apenas 2 bytes, o que é insuficiente
 };
 
-char *nome = calloc(16, sizeof(char)); 
-char *nusp_char = calloc(16,sizeof(char));
+char *nome = (char *)calloc(16, sizeof(char)); 
+char *nusp_char = (char *)calloc(16,sizeof(char));
 
 int estado_porta = 1; //0 para fechado, 1 para aberto.
 
@@ -50,7 +71,6 @@ void ajusta_led() //Ajusta os leds  para o estado atual da porta
     digitalWrite(led_verde, HIGH);
     digitalWrite(led_vermelho, LOW);
   }
-  
 }
 
 void ativar_servo()
@@ -58,12 +78,14 @@ void ativar_servo()
   //Adicionar reações do buzzer também
   //Ativa o servo e destrava/trava a porta
   if(!estado_porta)      //Está trancada
-  { servo.write(aberto); //Abre a porta
+  { 
+    servo.write(aberto); //Abre a porta
     estado_porta = 1;
     ajusta_led();
   }
   else
-  { servo.write(fechado); //Fecha a porta
+  { 
+    servo.write(fechado); //Fecha a porta
     estado_porta = 0;
     ajusta_led();
   }
@@ -250,17 +272,27 @@ void setup()
   servo.attach(motor);           // Servo conectado ao pino já definido
   pinMode(led_verde, OUTPUT);    // Led Verde conectado como output no pino já definido
   pinMode(led_vermelho, OUTPUT); // Led Vermelho conectado como output no pino já definido
-  
+
   Serial.begin(9600);            // Inicialize a comunicação serial com o PC
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
+
+  Serial.print("Initializing SD card...");
+  if (!SD.begin(4)) {
+    Serial.println("initialization failed!");
+    while (1);
+  }
+  Serial.println("initialization done.");
+  myFile = SD.open("test.txt", FILE_WRITE);
+
   SPI.begin();                   // Init SPI bus
   mfrc522.PCD_Init();            // Init MFRC522 card
-  //Depois de setar o servomotor
-  
+    
   ativar_servo();
+
+  puxarCadastrosMemoria(cadastro); //Puxa os nomes escritos em um txt interno ao SD no formato "Fulano,10355555"
   
-  cadastra_membro("Alguem", 10228323L);
-  cadastra_membro("Fulano", 8283712L);
-  cadastra_membro("Marcia", 12345678L);
 
   Serial.println(F("Aproxime o seu cartão:"));    //shows in serial that it is ready to read
 }
@@ -268,6 +300,15 @@ void setup()
 //*****************************************************************************************//
 void loop() 
 {
+  for(int m = 0; m < indc; m++)
+  {
+    Serial.println("aaaaaaaaaaaaaaaa");
+    Serial.println(cadastro[m].nome);
+    Serial.println("   ");
+    Serial.println(cadastro[m].nusp);
+    Serial.print("\n\n");    
+  }
+  delay(1000000);
   
   if(digitalRead(but_in))//Apertaram o botão interno, movimentar o sistema
   {
@@ -319,14 +360,12 @@ void loop()
   //------------------------------------------- GET FIRST NAME
   status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, 4, &key, &(mfrc522.uid)); //line 834 of MFRC522.cpp file
   if (status != MFRC522::STATUS_OK) {
-    //Serial.print(F("Authentication failed: "));
     reseta_rfid();
     return;
   }
 
   status = mfrc522.MIFARE_Read(block, buffer1, &len);
   if (status != MFRC522::STATUS_OK) {
-    //Serial.print(F("Reading failed: "));
     reseta_rfid();
     return;
   }
@@ -391,4 +430,45 @@ void loop()
     nome[j] = 32;
   }
 }
+
+int puxarCadastrosMemoria(struct membro[])
+{
+  
+  int nm, nsp;
+  char carac, nusp_char[16];
+  
+  myFile = SD.open("testes.txt");
+
+  bool nome, parou = false;
+  while(!parou)
+  { 
+    nsp = 0;
+    indc++;
+    nm = 0;
+    nome = true;
+    while ((carac = myFile.read()) != '\n') //O cartão lê em chars, e aqui filtrei linha por linha
+    {
+      if(carac == -1)
+      {
+        parou = true;
+        break;
+      }
+      if(carac == ',')
+      { //O nome é separado por ',' do nusp, por isso quando ler a virgula começa a leitura do nusp 
+        nome = false;
+        continue;
+      }
+      if(nome)
+        cadastro[indc].nome[nm++] = carac;  
+      else
+        nusp_char[nsp++] = carac;
+    }
+    if(!parou)
+      cadastro[indc].nusp = atol(nusp_char); //Ao final da leitura do nusp do indivíduo, converto para long
+  }
+
+  myFile.close();
+}
+
+
 //*****************************************************************************************//
