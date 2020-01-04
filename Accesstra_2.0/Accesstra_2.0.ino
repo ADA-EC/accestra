@@ -16,6 +16,11 @@
 #define NUMERO_MESTRE   42 // Número exclusivo do cartão mestre, cuja única finalidade é cadastrar novos membros
 #define NUMERO_MEMBRO   22 // Número que os cartões de membros "visitantes" terão - Esses não contarão com uma música personalizada
 
+//Configuração do buzzer
+int buzzerPin = 10;
+int cont = 0;
+
+
 //Configurações do servo motor
 Servo servo;      // Criar o objeto servo
 int aberto = 110; // Definir a posição aberto (ângulo em graus) do servo (varia de 0 até 180)
@@ -29,6 +34,34 @@ char *nusp_char = calloc(16,sizeof(char));
 int estado_porta = 1; //0 para fechado, 1 para aberto.
 
 int indc = -1; //Registra o índice dos cadastros
+
+void open_Door()//Emite alerta sonoro de abertura da porta
+{
+  tone(buzzerPin, 349, 400);
+  delay(400);
+  noTone(buzzerPin);
+  tone(buzzerPin, 440, 400);
+  delay(400);
+  noTone(buzzerPin);
+  tone(buzzerPin, 523, 400);
+  delay(400);
+  noTone(buzzerPin);
+  }
+
+void close_Door()//Emite alerta sonoro de travamento da porta
+{
+  for(cont=0;cont<5;cont++){
+    tone(buzzerPin, 311, 200);
+    delay(200);
+    noTone(buzzerPin);
+    delay(200);
+    tone(buzzerPin, 311, 400);
+    delay(400);
+    noTone(buzzerPin);
+    delay(200);
+    }
+  cont = 0;
+  }
 
 void ajusta_led() //Ajusta os leds  para o estado atual da porta
 {
@@ -47,19 +80,21 @@ void ajusta_led() //Ajusta os leds  para o estado atual da porta
 
 void ativar_servo()
 {
-  //Adicionar reações do buzzer também
   //Ativa o servo e destrava/trava a porta
+  //Emite o alerta sonoro
   if(!estado_porta)      //Está trancada
   { 
     servo.write(aberto); //Abre a porta
     estado_porta = 1;
     ajusta_led();
+    open_Door();
   }
   else
   { 
     servo.write(fechado); //Fecha a porta
     estado_porta = 0;
     ajusta_led();
+    close_Door();
   }
 }
 
