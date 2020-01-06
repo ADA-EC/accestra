@@ -17,9 +17,7 @@
 #define NUMERO_MEMBRO   22 // Número que os cartões de membros "visitantes" terão - Esses não contarão com uma música personalizada
 
 //Configuração do buzzer
-int buzzerPin = 10;
-int cont = 0;
-
+int buzzerPin = 3;
 
 //Configurações do servo motor
 Servo servo;      // Criar o objeto servo
@@ -46,11 +44,12 @@ void open_Door()//Emite alerta sonoro de abertura da porta
   tone(buzzerPin, 523, 400);
   delay(400);
   noTone(buzzerPin);
-  }
+}
 
 void close_Door()//Emite alerta sonoro de travamento da porta
 {
-  for(cont=0;cont<5;cont++){
+  for(int cont = 0; cont < 2 ;cont++)
+  {
     tone(buzzerPin, 311, 200);
     delay(200);
     noTone(buzzerPin);
@@ -59,9 +58,8 @@ void close_Door()//Emite alerta sonoro de travamento da porta
     delay(400);
     noTone(buzzerPin);
     delay(200);
-    }
-  cont = 0;
   }
+}
 
 void ajusta_led() //Ajusta os leds  para o estado atual da porta
 {
