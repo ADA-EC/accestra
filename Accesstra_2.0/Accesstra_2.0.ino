@@ -13,11 +13,10 @@
 #define motor           6  // Servo Motor que abre e fecha
 #define but_in          7  // Botão interno abre ou fecha!
 #define but_out         8  // Botão externo vai apenas travar!!
+#define buzzerPin       3  // Pino do buzzer que emite alertas sonoros
 #define NUMERO_MESTRE   42 // Número exclusivo do cartão mestre, cuja única finalidade é cadastrar novos membros
 #define NUMERO_MEMBRO   22 // Número que os cartões de membros "visitantes" terão - Esses não contarão com uma música personalizada
 
-//Configuração do buzzer
-int buzzerPin = 3;
 
 //Configurações do servo motor
 Servo servo;      // Criar o objeto servo
@@ -30,8 +29,6 @@ char *nome = calloc(16, sizeof(char));
 char *nusp_char = calloc(16,sizeof(char));
 
 int estado_porta = 1; //0 para fechado, 1 para aberto.
-
-int indc = -1; //Registra o índice dos cadastros
 
 void open_Door()//Emite alerta sonoro de abertura da porta
 {
@@ -97,16 +94,15 @@ void reseta_rfid()
 
 int cadastra_membro()
 {
-  Serial.println("Ola sr(a) admin, vamos cadastrar um membro");
-  delay(1000);
+  delay(500); //Importante para não escrever no próprio cartão de admin
   int estado_led = HIGH;
   
   MFRC522::MIFARE_Key key;
   for (byte i = 0; i < 6; i++) key.keyByte[i] = 0xFF;
 
   while( ! mfrc522.PICC_IsNewCardPresent() || ! mfrc522.PICC_ReadCardSerial())
-  { //Enquanto ainda não aproximar o cartão
-       
+  { 
+    //Enquanto ainda não aproximar o cartão
     digitalWrite(led_verde, estado_led);
     digitalWrite(led_vermelho, estado_led);
     estado_led = !estado_led; //Blinkar o LED
@@ -182,7 +178,6 @@ int cadastra_membro()
     reseta_rfid();
     return 0;
   }
-  else Serial.println(F("MIFARE_Write() success: "));
 
   block = 5;
 
