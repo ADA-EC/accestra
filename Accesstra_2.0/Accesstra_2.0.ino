@@ -35,11 +35,8 @@ int indc = -1; //Registra o índice dos cadastros
 
 void open_Door()//Emite alerta sonoro de abertura da porta
 {
-  tone(buzzerPin, 349, 400);
-  delay(400);
-  noTone(buzzerPin);
   tone(buzzerPin, 440, 400);
-  delay(400);
+  delay(200);
   noTone(buzzerPin);
   tone(buzzerPin, 523, 400);
   delay(400);
@@ -48,17 +45,12 @@ void open_Door()//Emite alerta sonoro de abertura da porta
 
 void close_Door()//Emite alerta sonoro de travamento da porta
 {
-  for(int cont = 0; cont < 2 ;cont++)
-  {
-    tone(buzzerPin, 311, 200);
-    delay(200);
-    noTone(buzzerPin);
-    delay(200);
-    tone(buzzerPin, 311, 400);
-    delay(400);
-    noTone(buzzerPin);
-    delay(200);
-  }
+  tone(buzzerPin, 440, 400);
+  delay(200);
+  noTone(buzzerPin);
+  tone(buzzerPin, 349, 400);
+  delay(400);
+  noTone(buzzerPin);
 }
 
 void ajusta_led() //Ajusta os leds  para o estado atual da porta
@@ -118,7 +110,11 @@ int cadastra_membro()
     digitalWrite(led_verde, estado_led);
     digitalWrite(led_vermelho, estado_led);
     estado_led = !estado_led; //Blinkar o LED
-    delay(250);
+    tone(buzzerPin, 349, 400);
+    delay(100);
+    tone(buzzerPin, 349, 400);
+    noTone(buzzerPin);
+    delay(400);
   }
   
   //Saiu do while, significa que encontrou o cartão
@@ -221,8 +217,7 @@ void detecta_membro(long nusp_lido)
   {
     while(!cadastra_membro()) //Enquanto ele não conseguir cadastrar o membro, ficar tentando!
     {;}
-
-    //Bipar o buzzer, indicando que deve aproximar o novo cartão a ser cadastrado
+  
     return;
   } 
   else if(nusp_lido == NUMERO_MEMBRO)
@@ -230,7 +225,7 @@ void detecta_membro(long nusp_lido)
       ativar_servo(); 
   }   
   else
-      Serial.println("Não está autorizado a entrar!");
+      close_Door();
 }
 
 
