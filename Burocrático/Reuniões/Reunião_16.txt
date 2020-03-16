@@ -1,0 +1,34 @@
+Pautas:
+
+	- Analisar as cláusulas e requisitos para a instalação do Acesstra.
+		- Conseguiremos causar apenas danos reparáveis? (Deixar a sala da forma original, numa possível saída da ADA)
+		- Como conseguiremos manter a porta abrível em caso de falha de energia? (nobreak - ou algum tipo de capacitor)
+		- "O projeto deve atender às normal regulamentadoras de segurança"
+			- Contra incêndio
+			- Falha repentina
+
+	- Aperfeiçoar e testar a tranca - Como instalá-la sem causar danos irreparáveis? - Qual a melhor maneira de fazer isso evitando falhas?
+		- Sugestão: tranca elétrica.
+		- Com o trinco de ferro -> Danos "irreparáveis"?
+
+	- PCB
+
+Plano:
+	- Tranca: Resolveremos juntos
+		- Tranca elétrica: Para ser abrível via chave também.
+
+	- Dividir a equipe
+		2 Desenvolvendo a PCB
+		2 Resolvendo os burocráticos e bolando soluções para atender
+
+Definido:
+
+	- Uso de tranca elétrica, a qual é abrível também via chave
+	- Divisão
+ 
+		º Érika e Dois cuidam da parte da tranca e descritiva
+			-  Identificar e comprar uma tranca compatível
+			-  Descrever nossa ideia e táticas de segurança
+	     
+		º Fernando e Shift
+			- Iniciar o desenvolvimento da PCB
