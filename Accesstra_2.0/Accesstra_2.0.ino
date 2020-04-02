@@ -226,7 +226,6 @@ void setup()
   SPI.begin();                   // Init SPI bus
   mfrc522.PCD_Init();            // Init MFRC522 card
 
-  ativar_porta();                // Certificar-se de que a porta inicia fechada
 }
 
 //*****************************************************************************************//
