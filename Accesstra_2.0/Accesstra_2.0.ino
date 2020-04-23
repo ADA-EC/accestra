@@ -12,7 +12,6 @@
 #define led_vermelho    2  // Led que indica porta fechada, pisca quando estiver cadastrando um novo cartão
 #define porta           6  // Envia o sinal de abertura para a porta
 #define but_in          7  // Botão interno abre ou fecha!
-#define but_out         8  // Botão externo vai apenas travar!!
 #define buzzerPin       3  // Pino do buzzer que emite alertas sonoros
 #define NUMERO_MESTRE   42 // Número exclusivo do cartão mestre, cuja única finalidade é cadastrar novos membros
 #define NUMERO_MEMBRO   22 // Número que os cartões de membros "visitantes" terão - Esses não contarão com uma música personalizada
@@ -34,6 +33,7 @@ void open_Door()//Emite alerta sonoro de abertura da porta
   noTone(buzzerPin);
 }
 
+//Vai indicar se o cartão RFID aproximado é de um aluno cadastrado ou não
 void close_Door()//Emite alerta sonoro de travamento da porta
 {
   tone(buzzerPin, 440, 400);
@@ -240,16 +240,6 @@ void loop()
     delay(10);
     ativar_porta();
   }
-
-  if (digitalRead(but_out) && estado_porta == 1) //Se o botão externo foi pressionado e a porta estava aberta, fecha a porta
-  {
-    while (digitalRead(but_out) == HIGH) {
-      ;
-    }
-    delay(10);
-    ativar_porta();
-  }
-
 
   ///***************** Bloco de detecção de cartões que serão aproximados **************/
 
