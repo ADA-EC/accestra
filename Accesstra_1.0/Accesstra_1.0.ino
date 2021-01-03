@@ -4,7 +4,6 @@
 
 #include <SPI.h>
 #include <MFRC522.h>
-#include <Servo.h>
 
 #define RST_PIN         9  // Configurable, see typical pin layout above
 #define SS_PIN          10 // Configurable, see typical pin layout above
@@ -21,9 +20,10 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance
 char *nome = calloc(16, sizeof(char));
 char *nusp_char = calloc(16, sizeof(char));
 
-int estado_porta = 1; //0 para fechado, 1 para aberto.
+int estado_porta = 1; //0 para fechado, 1 para aberto
 
-void open_Door()//Emite alerta sonoro de abertura da porta
+//Emite alerta sonoro de abertura da porta
+void open_Door()
 {
   tone(buzzerPin, 440, 400);
   delay(200);
@@ -33,8 +33,8 @@ void open_Door()//Emite alerta sonoro de abertura da porta
   noTone(buzzerPin);
 }
 
-//Vai indicar se o cartão RFID aproximado é de um aluno cadastrado ou não
-void close_Door()//Emite alerta sonoro de travamento da porta
+//Emite alerta sonoro de travamento da porta
+void close_Door()
 {
   tone(buzzerPin, 440, 400);
   delay(200);
@@ -44,7 +44,8 @@ void close_Door()//Emite alerta sonoro de travamento da porta
   noTone(buzzerPin);
 }
 
-void ajusta_led() //Ajusta os leds  para o estado atual da porta
+//Ajusta os leds  para o estado atual da porta
+void ajusta_led() 
 {
   if (!estado_porta) //Se estiver fechado
   {
@@ -59,25 +60,28 @@ void ajusta_led() //Ajusta os leds  para o estado atual da porta
 
 }
 
+//Abre a porta - o programa não tem controle sobre o fechamento
 void ativar_porta()
 {
-  //Ativa o servo e destrava/trava a porta
-  //Emite o alerta sonoro
-  if (!estado_porta)     //Está trancada
-  {
-    digitalWrite(porta, HIGH); //Abre a porta
-    estado_porta = 1;
-    ajusta_led();
-    open_Door();
-    delay(1000); //Delay de 1s, para esperar, teoricamente, a fechadura manual da porta
-    estado_porta = 0;
-    ajusta_led();
-  }
+  //A trava elétrica apenas abre
+  digitalWrite(porta, HIGH); //Abre a porta
+  delay(300);                //O melhor tempo de delay deve ser testado
+  digitalWrite(porta, LOW); 
+
+  //Alterar os Leds
+  estado_porta = 1;
+  ajusta_led();
+  open_Door();
+  delay(1000);
+
+  //Alterar os Leds
+  estado_porta = 0;
+  ajusta_led();
 }
 
+//Evita travamentos
 void reseta_rfid()
-{ //Sem esses comandos, após um erro de leitura ou aproximação do cartão -
-  // - o módulo travava, e era necessário resetar o arduino para voltar à normalidade
+{
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
 }
@@ -218,7 +222,7 @@ void detecta_membro(long nusp_lido)
 
 void setup()
 {
-  pinMode(porta,OUTPUT);         // Sinal eletrico para a abertura da trava 
+  pinMode(porta, OUTPUT);         // Sinal eletrico para a abertura da trava 
   pinMode(led_verde, OUTPUT);    // Led Verde conectado como output no pino já definido
   pinMode(led_vermelho, OUTPUT); // Led Vermelho conectado como output no pino já definido
 
@@ -226,7 +230,7 @@ void setup()
   SPI.begin();                   // Init SPI bus
   mfrc522.PCD_Init();            // Init MFRC522 card
 
-}
+} 
 
 //*****************************************************************************************//
 void loop()
@@ -234,6 +238,7 @@ void loop()
 
   if (digitalRead(but_in)) //Apertaram o botão interno, movimentar o sistema
   {
+    Serial.println("APERTO");
     while (digitalRead(but_in) == HIGH) {
       ;
     }
