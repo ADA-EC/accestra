@@ -7,22 +7,32 @@
 
 #define RST_PIN         9  // Configurable, see typical pin layout above
 #define SS_PIN          10 // Configurable, see typical pin layout above
-#define led_verde       4  // Led que indica porta aberta,  pisca quando estiver cadastrando um novo cartão
-#define led_vermelho    2  // Led que indica porta fechada, pisca quando estiver cadastrando um novo cartão
+#define led_verde       5  // Led que indica porta aberta,  pisca quando estiver cadastrando um novo cartão
+#define led_vermelho    8  // Led que indica porta fechada, pisca quando estiver cadastrando um novo cartão
 #define porta           6  // Envia o sinal de abertura para a porta
 #define but_in          7  // Botão interno abre ou fecha!
-#define buzzerPin       3  // Pino do buzzer que emite alertas sonoros
-#define NUMERO_MESTRE   42 // Número exclusivo do cartão mestre, cuja única finalidade é cadastrar novos membros
-#define NUMERO_MEMBRO   22 // Número que os cartões de membros "visitantes" terão - Esses não contarão com uma música personalizada
+#define buzzerPin       2  // Pino do buzzer que emite alertas sonoros
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance
+MFRC522::MIFARE_Key key;
 
-char *nome = calloc(16, sizeof(char));
-char *nusp_char = calloc(16, sizeof(char));
+// Struct de códigos válidos
+typedef struct mem
+{
+  byte codigo[4];
+}Membro;
 
-int estado_porta = 1; //0 para fechado, 1 para aberto
+//Vetor de membros
+Membro *membros;
+int num_membros;
 
-//Emite alerta sonoro de abertura da porta
+// UID do cartão mestre
+byte UID_mestre[4];
+
+//0 para fechado, 1 para aberto
+int estado_porta = 0; 
+
+//Emite alerta sonoro de positivo
 void open_Door()
 {
   tone(buzzerPin, 440, 400);
@@ -33,7 +43,7 @@ void open_Door()
   noTone(buzzerPin);
 }
 
-//Emite alerta sonoro de travamento da porta
+//Emite alerta sonoro de negativo
 void close_Door()
 {
   tone(buzzerPin, 440, 400);
@@ -47,23 +57,23 @@ void close_Door()
 //Ajusta os leds  para o estado atual da porta
 void ajusta_led() 
 {
-  if (!estado_porta) //Se estiver fechado
+  //Se estiver fechado
+  if (!estado_porta)
   {
     digitalWrite(led_verde, LOW);
     digitalWrite(led_vermelho, HIGH);
   }
-  else
+  else  //Se estiver aberto
   {
     digitalWrite(led_verde, HIGH);
     digitalWrite(led_vermelho, LOW);
   }
-
 }
 
 //Abre a porta - o programa não tem controle sobre o fechamento
-void ativar_porta()
+void abre_porta()
 {
-  //A trava elétrica apenas abre
+  //Ativar a trava elétrica
   digitalWrite(porta, HIGH); //Abre a porta
   delay(300);                //O melhor tempo de delay deve ser testado
   digitalWrite(porta, LOW); 
@@ -79,24 +89,17 @@ void ativar_porta()
   ajusta_led();
 }
 
-//Evita travamentos
-void reseta_rfid()
+void cadastra_membro()
 {
-  mfrc522.PICC_HaltA();
-  mfrc522.PCD_StopCrypto1();
-}
-
-int cadastra_membro()
-{
-  delay(500); //Importante para não escrever no próprio cartão de admin
+  delay(500); //Importante para não recadastrar o próprio cartão admin
   int estado_led = HIGH;
 
   MFRC522::MIFARE_Key key;
   for (byte i = 0; i < 6; i++) key.keyByte[i] = 0xFF;
 
+  //Enquanto ainda não aproximar o cartão
   while ( ! mfrc522.PICC_IsNewCardPresent() || ! mfrc522.PICC_ReadCardSerial())
   {
-    //Enquanto ainda não aproximar o cartão
     digitalWrite(led_verde, estado_led);
     digitalWrite(led_vermelho, estado_led);
     estado_led = !estado_led; //Blinkar o LED
@@ -106,119 +109,56 @@ int cadastra_membro()
     noTone(buzzerPin);
     delay(400);
   }
-
-  //Saiu do while, significa que encontrou o cartão
-  //Iniciar cadastro do membro
-
+  
   ///***************** Bloco de cadastro de membros usando RFID ***********/
-
+  
+  byte UID_lido[4];
   MFRC522::PICC_Type piccType = mfrc522.PICC_GetType(mfrc522.uid.sak);
 
-  byte buffer[34];
-  byte block;
-  MFRC522::StatusCode status;
-  byte len;
-
-  //Aqui está setando o número permitido dos membros
-  buffer[0] = '2';
-  buffer[1] = '2';
-
-  block = 1;
-
-  status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, block, &key, &(mfrc522.uid));
-  if (status != MFRC522::STATUS_OK)
+  //Verifica se o cartão é do tipo válido
+  if (piccType != MFRC522::PICC_TYPE_MIFARE_MINI &&  
+    piccType != MFRC522::PICC_TYPE_MIFARE_1K &&
+    piccType != MFRC522::PICC_TYPE_MIFARE_4K) 
   {
-    reseta_rfid();
-    return 0;
-  }
-
-  status = mfrc522.MIFARE_Write(block, buffer, 16);
-  if (status != MFRC522::STATUS_OK)
-  {
-    reseta_rfid();
-    return 0;
-  }
-
-  block = 2;
-  status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, block, &key, &(mfrc522.uid));
-  if (status != MFRC522::STATUS_OK)
-  {
-    reseta_rfid();
-    return 0;
-  }
-
-  status = mfrc522.MIFARE_Write(block, &buffer[16], 16);
-  if (status != MFRC522::STATUS_OK)
-  {
-    reseta_rfid();
-    return 0;
-  }
-
-  // Primeiro nome
-  strcpy(buffer, "membro");
-  block = 4;
-
-  status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, block, &key, &(mfrc522.uid));
-  if (status != MFRC522::STATUS_OK)
-  {
-    reseta_rfid();
-    return 0;
-  }
-
-  // Write block
-  status = mfrc522.MIFARE_Write(block, buffer, 16);
-  if (status != MFRC522::STATUS_OK)
-  {
-    reseta_rfid();
-    return 0;
-  }
-
-  block = 5;
-
-  status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, block, &key, &(mfrc522.uid));
-  if (status != MFRC522::STATUS_OK)
-  {
-    reseta_rfid();
-    return 0;
-  }
-
-  status = mfrc522.MIFARE_Write(block, &buffer[16], 16);
-  if (status != MFRC522::STATUS_OK)
-  {
-    reseta_rfid();
-    return 0;
-  }
-
-  mfrc522.PICC_HaltA(); // Halt PICC
-  mfrc522.PCD_StopCrypto1();  // Stop encryption on PCD
-
-
-  ///***************** Fim do bloco de cadastro de membros *******/
-
-  ajusta_led();
-  return 1; //Deu tudo certo!!
-}
-
-void detecta_membro(long nusp_lido)
-{
-
-  if (nusp_lido == NUMERO_MESTRE)
-  {
-    while (!cadastra_membro()) //Enquanto ele não conseguir cadastrar o membro, ficar tentando!
-    {
-      ;
-    }
-
+    close_Door();
+    ajusta_led();
     return;
   }
-  else if (nusp_lido == NUMERO_MEMBRO)
-  {
-    ativar_porta();
+
+  //Armazena o UID lido
+  for (byte i = 0; i < 4; i++) {
+    UID_lido[i] = mfrc522.uid.uidByte[i];
   }
-  else
-    close_Door();
+
+  //Realoca o vetor de membros
+  num_membros++;
+  membros = (Membro *) realloc(membros, num_membros*sizeof(Membro));
+
+  //Cadastra o novo membro
+  (membros[num_membros - 1]).codigo[0] = UID_lido[0];
+  (membros[num_membros - 1]).codigo[1] = UID_lido[1];
+  (membros[num_membros - 1]).codigo[2] = UID_lido[2];
+  (membros[num_membros - 1]).codigo[3] = UID_lido[3];
+  
+  
+  ///***************** Fim do bloco de cadastro de membros *******/
+  ajusta_led();
+  delay(1500);
+  return;
 }
 
+//Função que verifica se o UID lido corresponde a algum cadastrado
+boolean detecta_membro(byte *UID_lido)
+{
+  int i;
+  for(i = 0; i < num_membros; i++)
+  {
+    if(memcmp(UID_lido, (membros[i]).codigo, sizeof(UID_lido)) == 0)
+      return true;
+  }
+
+  return false; 
+}
 
 void setup()
 {
@@ -229,13 +169,20 @@ void setup()
   Serial.begin(9600);            // Inicialize a comunicação serial com o PC
   SPI.begin();                   // Init SPI bus
   mfrc522.PCD_Init();            // Init MFRC522 card
+  ajusta_led();
 
+  //Cadastra o cartão mestre (em decimal)
+  UID_mestre[0] = 146;
+  UID_mestre[1] = 129;
+  UID_mestre[2] = 82;
+  UID_mestre[3] = 28;
+  
 } 
 
-//*****************************************************************************************//
 void loop()
 {
-
+  byte UID_lido[4];
+  
   if (digitalRead(but_in)) //Apertaram o botão interno, movimentar o sistema
   {
     Serial.println("APERTO");
@@ -243,17 +190,10 @@ void loop()
       ;
     }
     delay(10);
-    ativar_porta();
+    abre_porta();
   }
 
   ///***************** Bloco de detecção de cartões que serão aproximados **************/
-
-  MFRC522::MIFARE_Key key;
-  for (byte i = 0; i < 6; i++) key.keyByte[i] = 0xFF;
-
-  byte block;
-  byte len;
-  MFRC522::StatusCode status;
 
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
@@ -264,77 +204,42 @@ void loop()
     return;
   }
 
-  byte buffer1[18];
+  MFRC522::PICC_Type piccType = mfrc522.PICC_GetType(mfrc522.uid.sak);
 
-  block = 4;
-  len = 18;
-
-  //------------------------------------------- Acessar o primeiro nome ----------- //
-  //Na realidade o primeiro nome será inútil
-
-  status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, 4, &key, &(mfrc522.uid)); //line 834 of MFRC522.cpp file
-  if (status != MFRC522::STATUS_OK)
+  // Verifica se o cartão é do tipo válido
+  if (piccType != MFRC522::PICC_TYPE_MIFARE_MINI &&  
+    piccType != MFRC522::PICC_TYPE_MIFARE_1K &&
+    piccType != MFRC522::PICC_TYPE_MIFARE_4K) 
   {
-    reseta_rfid();
+    close_Door();
     return;
   }
 
-  status = mfrc522.MIFARE_Read(block, buffer1, &len);
-  if (status != MFRC522::STATUS_OK)
+  // Armazena o UID lido
+  for (byte i = 0; i < 4; i++)
   {
-    reseta_rfid();
-    return;
+    UID_lido[i] = mfrc522.uid.uidByte[i];
   }
+  
+  ///******************** Processar o UID lido *****************************/
 
-  for (uint8_t i = 0; i < 16; i++)
+  //Verificar se o UID lido é o mestre
+  if(memcmp(UID_lido, UID_mestre, sizeof(UID_lido)) == 0)
   {
-    if (buffer1[i] != 32 && buffer1[i] != 0)
-    {
-      nome[i] = buffer1[i]; //Copia o nome
-    }
+    //UID lido é o mestre, iniciar cadastro
+    cadastra_membro();
+    return;  
   }
-
-  //---------------------------------------- ACESSAR O "SOBRENOME" QUE SERIA O ID -----------//
-
-  byte buffer2[18];
-  block = 1;
-
-  status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, 1, &key, &(mfrc522.uid)); //line 834
-  if (status != MFRC522::STATUS_OK)
+  //Verificar se o UID lido é de algum membro
+  else if(detecta_membro(UID_lido))
   {
-    reseta_rfid();
-    return;
+    //Positivo: Abrir a porta
+    abre_porta();
   }
-
-  status = mfrc522.MIFARE_Read(block, buffer2, &len);
-  if (status != MFRC522::STATUS_OK)
+  else
   {
-    reseta_rfid();
-    return;
+    //Negativo: Fechar a porta
+    close_Door();
   }
-
-  for (uint8_t i = 0; i < 16; i++)
-  {
-    if (buffer2[i] != 0)
-      nusp_char[i] = buffer2[i];
-  }
-
-  long nusp_l = atol(nusp_char);
-
-  delay(300);
-
-  mfrc522.PICC_HaltA();
-  mfrc522.PCD_StopCrypto1();
-
-  ///******************** Fim do bloco de detecção de cartões *****************************/
-
-  detecta_membro(nusp_l);
-
-  //Zerando as variáveis globais
-  for (int j = 0; j < 16; j++)
-  {
-    nusp_char[j] = 32; //Colocando nulo em todas as posições dos vetores
-    nome[j] = 32;
-  }
-
+  
 }
