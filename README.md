@@ -13,17 +13,20 @@ Na programação foram utilizadas
      * Biblioteca MFRC522
 
 <h2> Protótipo </h2>
+![](Imagens/prototipo_acesstra.jpg)
 
 <h2> Manual do Sistema </h2>
 
 Um manual do sistema, contendo informações detalhadas sobre o código e sobre como operar está disponível neste repostório
 
 <h2>Membros</h2>
-* Érika Hortência
-* Fernando Rosalini Calaza
-* Marcos Pietrucci
-
+<ul>
+ <li>Érika Hortência</li>
+ <li>Fernando Rosalini Calaza</li>
+ <li>Marcos Pietrucci</li>
+</ul>
 <h2>Agradecimentos</h2>
-* Alexandre Batistella Bellas
-* Bruno Coulturato pelas contribuições no desenvolvimento da PCB
-* João Marco Barros
+<ul>
+ <li>Alexandre Batistella Bellas</li>
+ <li>Bruno Coulturato pelas contribuições no desenvolvimento da PCB</li>
+ <li>João Marco Barros</li>
