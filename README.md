@@ -13,7 +13,8 @@ Na programação foram utilizadas
      * Biblioteca MFRC522
 
 <h2> Protótipo </h2>
-![](Imagens/prototipo_acesstra.jpg)
+
+![aaa](Imagens/prototipo_acesstra.png)
 
 <h2> Manual do Sistema </h2>
 
