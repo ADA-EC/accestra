@@ -1,5 +1,5 @@
 # Accestra
- Sistema de entrada/saída de membros na sala da ADA..
+ Sistema de entrada/saída de membros na sala da ADA.
 
 <h2> Descrição </h2>
 
@@ -18,7 +18,7 @@ Na programação foram utilizadas
 
 <h2> Manual do Sistema </h2>
 
-Um manual do sistema, contendo informações detalhadas sobre o código e sobre como operar está disponível neste repostório
+Um manual do sistema, contendo informações detalhadas sobre o código e sobre como operar estará disponível neste repostório 
 
 <h2>Membros</h2>
 <ul>
