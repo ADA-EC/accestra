@@ -7,12 +7,9 @@ O objetivo é desenvolver e instalar um sistema de abertura da porta por meio do
   
 <h2> Tencologias Usadas </h2>
 
-Para compor o sistema de acesso, foi utilizado um Arduino UNO, com planos de usarmos apenas o <b>ATmega</b>. A porta é equipada com um <b>leitor de RFID</b> e um <b>botão</b> interno, enquanto a tranca será substituída por uma <b>fechadura elétrica</b> comum, acionada por um sinal elétrico enviado pelo sistema. Haverá ainda um <b>buzzer</b> para alertas sonoros e um <b>LED vermelho e outro verde</b> para indicação do estado.
-<br>
-<ul>Na programação foram utilizadas as bibliotecas
-    <li>SPI</li>
-    <li>MFRC522</li>
-</ul>
+Para compor o sistema de acesso, foi utilizado um Arduino UNO, com planos de usarmos apenas o <b>ATmega</b>. A porta é equipada com um <b>leitor de RFID</b> e um <b>botão</b> interno, enquanto a tranca será substituída por uma <b>fechadura elétrica</b> comum, acionada por um sinal elétrico enviado pelo sistema. Haverá ainda um <b>buzzer</b> para alertas sonoros e um <b>LED vermelho e outro verde</b> para indicação do estado.<br><br>
+Na programação foram utilizadas as bibliotecas <b>SPI</b> e <b>MFRC522</b>
+
 <h2> Protótipo </h2>
 
 ![aaa](Imagens/prototipo_acesstra.png)
