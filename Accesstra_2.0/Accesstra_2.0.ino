@@ -29,7 +29,8 @@ typedef struct memb
 }Membro;
 
 //UID do cartão mestre
-byte UID_mestre[4] = {146, 129, 82, 28};
+byte UID_cadastro[4] = {146, 129, 82, 28};
+byte UID_descadastro[4] = {0, 0, 0, 0};
 
 //0 para fechado, 1 para aberto
 int estado_porta = 0; 
@@ -167,7 +168,6 @@ void cadastra_membro()
   ///***************** Fim do bloco de cadastro de membros *******/
   ajusta_led();
   delay(1500);
-  return;
 }
 
 //Função que verifica se o UID lido corresponde a algum cadastrado
@@ -188,7 +188,7 @@ boolean detecta_membro(byte *UID_lido)
     arquivo.read(mem.codigo, 4);
 
     //Compara o UID lido com o membro cadastrado
-    if(memcmp(UID_lido, mem.codigo, sizeof(UID_lido)) == 0)
+    if(memcmp(UID_lido, mem.codigo, 4) == 0)
     {
       return true;
     }
@@ -244,17 +244,15 @@ void deleta_membro()
   digitalWrite(SS_SD, LOW);
 
   //---- Percorrer o cartão SD e deletar o membro lógicamente ---- //
-  int posicao;
   byte vetorNulo[4] = {0,0,0,0};
   Membro mem;
  
   //Abre o arquivo de membros
-  arquivo = SD.open("membros.bin", FILE_WRITE);
+  arquivo = SD.open("membros.bin", O_WRITE | O_READ);
 
   if(!arquivo)
     erro();
 
-  arquivo.seek(0);
   for(i = 0; i < arquivo.size() ; i += 4)
   {
     //Lê arquivo os bytes do cartão SD
@@ -262,9 +260,11 @@ void deleta_membro()
 
     //Compara o UID lido com o membro cadastrado
     if(memcmp(UID_lido, mem.codigo, sizeof(UID_lido)) == 0)
-    {
+    { 
+      //Posiciona o ponteiro para a posição necessária
       arquivo.seek(arquivo.position() - 4);
 
+      //Escreve valor invalido no registro
       arquivo.write(vetorNulo, 4);
 
       break;
@@ -276,6 +276,10 @@ void deleta_membro()
   //Ativa o RFID e desativa o cartão SD
   digitalWrite(SS_RFID, LOW);
   digitalWrite(SS_SD, HIGH);
+
+  ///***************** Fim do bloco de descadastro de membros *******/
+  ajusta_led();
+  delay(1500);
 }
 
 //Função que emite um alerta sonoro de erro
@@ -312,18 +316,13 @@ void setup()
     erro();
   }
 
-  //Lê os registros armazenados
-  //le_registros();
-
   //Ativa o RFID e desativa o cartão SD
   digitalWrite(SS_RFID, LOW);
   digitalWrite(SS_SD, HIGH);
 
   //Inicia o MFRC522
   mfrc522.PCD_Init();
-  
 } 
-
 
 void loop()
 {
@@ -369,13 +368,16 @@ void loop()
   ///******************** Processar o UID lido *****************************/
 
   //Verificar se o UID lido é o mestre
-  if(memcmp(UID_lido, UID_mestre, sizeof(UID_lido)) == 0)
+  if(memcmp(UID_lido, UID_cadastro, sizeof(UID_lido)) == 0)
   {
     //UID lido é o mestre, iniciar cadastro
-    //cadastra_membro();
-    
+    cadastra_membro();
+  }
+  //Verificar se o UID lido é o de descadastro
+  else if(memcmp(UID_lido, UID_descadastro, sizeof(UID_lido)) == 0)
+  {
+    //UID lido é o de descadastro
     deleta_membro();
-    return;  
   }
   //Verificar se o UID lido é de algum membro
   else if(detecta_membro(UID_lido))
