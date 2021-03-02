@@ -1,42 +1,42 @@
-//Código inicialmente desenvolvido em:
-//  - https://github.com/Marcos-Pietrucci/Acesstra-ADA/tree/master/codigo
-
-
 #include <SPI.h>
 #include <SD.h>
 #include <MFRC522.h>
 #define SS_SD           4  // Slave Select do cartão SD
-#define RST_PIN         9  // Configurable, see typical pin layout above
 #define SS_RFID         10 // Slave Select do RFID
-#define led_verde       5  // Led que indica porta aberta,  pisca quando estiver cadastrando um novo cartão
-#define led_vermelho    8  // Led que indica porta fechada, pisca quando estiver cadastrando um novo cartão
+#define RST_PIN         9  // Configurable, see typical pin layout above
+#define led_verde       5  // Led que indica porta positivo
+#define led_vermelho    8  // Led que indica porta negativo
 #define porta           6  // Envia o sinal de abertura para a porta
-#define but_in          7  // Botão interno abre ou fecha!
+#define but_in          7  // Botão interno que abre a porta
 #define buzzerPin       2  // Pino do buzzer que emite alertas sonoros
 
 // --- Objetos do RFID --- //
 MFRC522 mfrc522(SS_RFID, RST_PIN);   // Create MFRC522 instance
 MFRC522::MIFARE_Key key;
 
-
 // --- Objetos do SD --- //
 File arquivo;
 
-// Struct de códigos válidos
+// Struct dos membros
 typedef struct memb
 {
   byte codigo[4];
 }Membro;
 
-//UID do cartão mestre
+//UID que será lido na loop
+byte UID_loop[4];
+
+//UID do cartão de cadastro
 byte UID_cadastro[4] = {146, 129, 82, 28};
+
+//UID do cartão de descadastro
 byte UID_descadastro[4] = {0, 0, 0, 0};
 
 //0 para fechado, 1 para aberto
 int estado_porta = 0; 
 
 //Emite alerta sonoro de positivo
-void open_Door()
+void positivo()
 {
   tone(buzzerPin, 440, 400);
   delay(200);
@@ -47,7 +47,7 @@ void open_Door()
 }
 
 //Emite alerta sonoro de negativo
-void close_Door()
+void negativo()
 {
   tone(buzzerPin, 440, 400);
   delay(200);
@@ -77,14 +77,16 @@ void ajusta_led()
 void abre_porta()
 {
   //Ativar a trava elétrica
-  digitalWrite(porta, HIGH); //Abre a porta
-  delay(300);                //O melhor tempo de delay deve ser testado
+  digitalWrite(porta, HIGH); 
+  
+  //O melhor tempo de delay deve ser testado
+  delay(300);                
   digitalWrite(porta, LOW); 
 
   //Alterar os Leds
   estado_porta = 1;
   ajusta_led();
-  open_Door();
+  positivo();
   delay(1000);
 
   //Alterar os Leds
@@ -92,10 +94,12 @@ void abre_porta()
   ajusta_led();
 }
 
-//Função que lê um cartão RF e cadastra no SD e na SRAM
+//Função que lê um cartão RF e cadastra no SD
 void cadastra_membro()
 {
-  delay(1000); //Importante para não recadastrar o próprio cartão admin
+  //Importante para não recadastrar o próprio cartão admin
+  delay(1000);
+  
   int estado_led = HIGH;
   int i;
 
@@ -107,16 +111,19 @@ void cadastra_membro()
   {
     digitalWrite(led_verde, estado_led);
     digitalWrite(led_vermelho, estado_led);
-    estado_led = !estado_led; //Blinkar o LED
+
+    //Blinkar o LED
+    estado_led = !estado_led; 
+
+    //Som para indicar estado de cadastro
     tone(buzzerPin, 349, 400);
     delay(100);
     tone(buzzerPin, 349, 400);
     noTone(buzzerPin);
-    delay(400);
+    delay(300);
   }
   
   //***************** Bloco de cadastro de membros ***********//
-  
   byte UID_lido[4];
   MFRC522::PICC_Type piccType = mfrc522.PICC_GetType(mfrc522.uid.sak);
 
@@ -125,7 +132,7 @@ void cadastra_membro()
     piccType != MFRC522::PICC_TYPE_MIFARE_1K &&
     piccType != MFRC522::PICC_TYPE_MIFARE_4K) 
   {
-    close_Door();
+    negativo();
     ajusta_led();
     return;
   }
@@ -197,6 +204,7 @@ boolean detecta_membro(byte *UID_lido)
   return false; 
 }
 
+//Função que lê um cartão e o descadastra caso encontre-o
 void deleta_membro()
 {
   delay(1000); //Importante para não recadastrar o próprio cartão admin
@@ -211,12 +219,16 @@ void deleta_membro()
   {
     digitalWrite(led_verde, estado_led);
     digitalWrite(led_vermelho, estado_led);
-    estado_led = !estado_led; //Blinkar o LED
+    
+    //Blinkar o LED
+    estado_led = !estado_led; 
+
+    //Alerta sonoro de descadastro
     tone(buzzerPin, 349, 400);
     delay(100);
-    tone(buzzerPin, 349, 400);
+    tone(buzzerPin, 523, 400);
     noTone(buzzerPin);
-    delay(400);
+    delay(300);
   }
   
   //***************** Bloco de cadastro de membros ***********//
@@ -229,7 +241,7 @@ void deleta_membro()
     piccType != MFRC522::PICC_TYPE_MIFARE_1K &&
     piccType != MFRC522::PICC_TYPE_MIFARE_4K) 
   {
-    close_Door();
+    negativo();
     ajusta_led();
     return;
   }
@@ -245,6 +257,7 @@ void deleta_membro()
 
   //---- Percorrer o cartão SD e deletar o membro lógicamente ---- //
   byte vetorNulo[4] = {0,0,0,0};
+  int flag = 0;
   Membro mem;
  
   //Abre o arquivo de membros
@@ -267,12 +280,21 @@ void deleta_membro()
       //Escreve valor invalido no registro
       arquivo.write(vetorNulo, 4);
 
+      //Indica que houve o descadastro
+      flag = 1;
+      
       break;
     }
   }   
-
+  
   arquivo.close();
 
+  //Se não houve descadastro, emitir alerta negativo
+  if(!flag)
+  {
+    negativo();
+  }
+  
   //Ativa o RFID e desativa o cartão SD
   digitalWrite(SS_RFID, LOW);
   digitalWrite(SS_SD, HIGH);
@@ -287,7 +309,8 @@ void erro()
 {
     while(1)
     {
-      close_Door();
+      //Substituir por função sonora específica de erro
+      negativo();
       delay(500);
     }  
 }
@@ -326,16 +349,13 @@ void setup()
 
 void loop()
 {
-  //Armazena o UID que será lido
-  byte UID_lido[4];
-
   //Verifica se apertaram o botão interno
   if (digitalRead(but_in)) 
   {
     while (digitalRead(but_in) == HIGH) {
       ;
     }
-    abre_porta();
+    positivo();
   }
 
   ///***************** Bloco de detecção de cartões que serão aproximados **************/
@@ -355,40 +375,40 @@ void loop()
     piccType != MFRC522::PICC_TYPE_MIFARE_1K &&
     piccType != MFRC522::PICC_TYPE_MIFARE_4K) 
   {
-    close_Door();
+    negativo();
     return;
   }
 
   // Armazena o UID lido
   for (byte i = 0; i < 4; i++)
   {
-    UID_lido[i] = mfrc522.uid.uidByte[i];
+    UID_loop[i] = mfrc522.uid.uidByte[i];
   }
   
   ///******************** Processar o UID lido *****************************/
 
   //Verificar se o UID lido é o mestre
-  if(memcmp(UID_lido, UID_cadastro, sizeof(UID_lido)) == 0)
+  if(memcmp(UID_loop, UID_cadastro, sizeof(UID_loop)) == 0)
   {
     //UID lido é o mestre, iniciar cadastro
     cadastra_membro();
   }
   //Verificar se o UID lido é o de descadastro
-  else if(memcmp(UID_lido, UID_descadastro, sizeof(UID_lido)) == 0)
+  else if(memcmp(UID_loop, UID_descadastro, sizeof(UID_loop)) == 0)
   {
     //UID lido é o de descadastro
     deleta_membro();
   }
   //Verificar se o UID lido é de algum membro
-  else if(detecta_membro(UID_lido))
+  else if(detecta_membro(UID_loop))
   {
     //Positivo: Abrir a porta
-    abre_porta();
+    positivo();
   }
   else
   {
     //Negativo: Fechar a porta
-    close_Door();
+    negativo();
   }
   
 }
