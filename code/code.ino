@@ -12,7 +12,6 @@
 
 // --- Objetos do RFID --- //
 MFRC522 mfrc522(SS_RFID, RST_PIN);   // Create MFRC522 instance
-MFRC522::MIFARE_Key key;
 
 // --- Objetos do SD --- //
 File arquivo;
@@ -57,7 +56,7 @@ void negativo()
   noTone(buzzerPin);
 }
 
-//Ajusta os leds  para o estado atual da porta
+//Ajusta os leds para o estado atual da porta
 void ajusta_led() 
 {
   //Se estiver fechado
@@ -73,7 +72,7 @@ void ajusta_led()
   }
 }
 
-//Função que abre a porta - o programa não tem controle sobre o fechamento
+//Função que abre a porta - envia sinal elétrico para a tranca
 void abre_porta()
 {
   //Ativar a trava elétrica
@@ -94,7 +93,7 @@ void abre_porta()
   ajusta_led();
 }
 
-//Função que lê um cartão RF e cadastra no SD
+//Função que lê um cartão USP e o cadastra no SD
 void cadastra_membro()
 {
   //Importante para não recadastrar o próprio cartão admin
@@ -102,9 +101,6 @@ void cadastra_membro()
   
   int estado_led = HIGH;
   int i;
-
-  MFRC522::MIFARE_Key key;
-  for (byte j = 0; j < 6; j++) key.keyByte[j] = 0xFF;
 
   //Enquanto ainda não aproximar o cartão
   while ( ! mfrc522.PICC_IsNewCardPresent() || ! mfrc522.PICC_ReadCardSerial())
@@ -123,7 +119,7 @@ void cadastra_membro()
     delay(300);
   }
   
-  //***************** Bloco de cadastro de membros ***********//
+  //***************** Bloco de detecção de cartões  ***********//
   byte UID_lido[4];
   MFRC522::PICC_Type piccType = mfrc522.PICC_GetType(mfrc522.uid.sak);
 
@@ -152,7 +148,7 @@ void cadastra_membro()
   {
     erro();
   }
-
+  
   //Abre o arquivo de membros
   arquivo = SD.open("membros.bin", FILE_WRITE); 
   
@@ -178,14 +174,19 @@ void cadastra_membro()
 }
 
 //Função que verifica se o UID lido corresponde a algum cadastrado
-boolean detecta_membro(byte *UID_lido)
+boolean busca_membro(byte *UID_lido)
 {
   int i;
   Membro mem;
- 
+
+  //Desativa o RFID e ativa o SD
+  digitalWrite(SS_RFID, HIGH);
+  digitalWrite(SS_SD, LOW);
+  delay(3);
+  
   //Abre o arquivo de membros
   arquivo = SD.open("membros.bin", FILE_READ);
-
+  
   if(!arquivo)
     erro();
 
@@ -199,7 +200,12 @@ boolean detecta_membro(byte *UID_lido)
     {
       return true;
     }
-  }   
+  } 
+
+  //Desativa o SD e ativa o RFID
+  digitalWrite(SS_RFID, LOW);
+  digitalWrite(SS_SD, HIGH);
+  delay(3);
 
   return false; 
 }
@@ -210,10 +216,7 @@ void deleta_membro()
   delay(1000); //Importante para não recadastrar o próprio cartão admin
   int estado_led = HIGH;
   int i;
-
-  MFRC522::MIFARE_Key key;
-  for (byte j = 0; j < 6; j++) key.keyByte[j] = 0xFF;
-
+  
   //Enquanto ainda não aproximar o cartão
   while ( ! mfrc522.PICC_IsNewCardPresent() || ! mfrc522.PICC_ReadCardSerial())
   {
@@ -231,7 +234,7 @@ void deleta_membro()
     delay(300);
   }
   
-  //***************** Bloco de cadastro de membros ***********//
+  //***************** Bloco de detecção de cartões ***********//
   
   byte UID_lido[4];
   MFRC522::PICC_Type piccType = mfrc522.PICC_GetType(mfrc522.uid.sak);
@@ -274,10 +277,10 @@ void deleta_membro()
     //Compara o UID lido com o membro cadastrado
     if(memcmp(UID_lido, mem.codigo, sizeof(UID_lido)) == 0)
     { 
-      //Posiciona o ponteiro para a posição necessária
+      //Volta o ponteiro 4 bytes atrás
       arquivo.seek(arquivo.position() - 4);
 
-      //Escreve valor invalido no registro
+      //Escreve valor nulo no registro
       arquivo.write(vetorNulo, 4);
 
       //Indica que houve o descadastro
@@ -352,24 +355,30 @@ void loop()
   //Verifica se apertaram o botão interno
   if (digitalRead(but_in)) 
   {
+    //Não fazer nada enquanto o botão estiver pressionado
     while (digitalRead(but_in) == HIGH) {
       ;
     }
+
+    //Botão foi solto, abrir a porta
     positivo();
+    abre_porta();
   }
 
-  ///***************** Bloco de detecção de cartões que serão aproximados **************/
+  //***************** Bloco de detecção de cartões que serão aproximados **************/
+  
+  //Verifica se tem cartão presente
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
   }
-
-  // Select one of the cards
+  
   if ( ! mfrc522.PICC_ReadCardSerial()) {
     return;
   }
 
+  //Cria um objeto leitor
   MFRC522::PICC_Type piccType = mfrc522.PICC_GetType(mfrc522.uid.sak);
-
+    
   // Verifica se o cartão é do tipo válido
   if (piccType != MFRC522::PICC_TYPE_MIFARE_MINI &&  
     piccType != MFRC522::PICC_TYPE_MIFARE_1K &&
@@ -379,6 +388,9 @@ void loop()
     return;
   }
 
+  //Vetor que armazenará o UID
+  byte UID_lido[4];
+  
   // Armazena o UID lido
   for (byte i = 0; i < 4; i++)
   {
@@ -400,14 +412,15 @@ void loop()
     deleta_membro();
   }
   //Verificar se o UID lido é de algum membro
-  else if(detecta_membro(UID_loop))
+  else if(busca_membro(UID_loop))
   {
     //Positivo: Abrir a porta
     positivo();
+    abre_porta();
   }
   else
   {
-    //Negativo: Fechar a porta
+    //Negativo: Cartão não cadastrado
     negativo();
   }
   
