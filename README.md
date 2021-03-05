@@ -28,4 +28,3 @@ Um manual do sistema, contendo informações detalhadas sobre o código e sobre 
 <ul>
  <li>Alexandre Batistella Bellas</li>
  <li>Bruno Coulturato pelas contribuições no desenvolvimento da PCB</li>
- <li>João Marco Barros</li>
