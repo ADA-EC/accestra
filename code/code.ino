@@ -93,6 +93,8 @@ void abre_porta()
   ajusta_led();
 }
 
+
+
 //Função que lê um cartão USP e o cadastra no SD
 void cadastra_membro()
 {
@@ -307,15 +309,17 @@ void deleta_membro()
   delay(1500);
 }
 
-//Função que emite um alerta sonoro de erro
+//Função que emite um alerta sonoro e vidusl de erro
 void erro()
 {
-    while(1)
-    {
-      //Substituir por função sonora específica de erro
-      negativo();
-      delay(500);
-    }  
+  digitalWrite(led_verde, HIGH);   
+  digitalWrite(buzzerPin, HIGH);   
+  tone(buzzerPin, 349, 400);
+  delay(200);                       
+  digitalWrite(led_verde, LOW);    
+  digitalWrite(led_vermelho, LOW);    
+  noTone(buzzerPin);
+  delay(200);                                                                                                                                                                                                                                                                                                          
 }
 
 void setup()
