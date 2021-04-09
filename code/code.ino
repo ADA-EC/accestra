@@ -310,17 +310,16 @@ void deleta_membro()
 //Função que emite um alerta sonoro e visual de erro
 void erro()
 {
-  //O usuário deve resetar o sistema
+  //O usuário deve corrigir o problema e resetar o sistema
+  digitalWrite(led_verde, HIGH);
+  digitalWrite(led_vermelho, HIGH);   
+  
   while(1)
-  {
-    digitalWrite(led_verde, HIGH);   
-    digitalWrite(buzzerPin, HIGH);   
-    tone(buzzerPin, 349, 400);
-    delay(200);                       
-    digitalWrite(led_verde, LOW);    
-    digitalWrite(led_vermelho, LOW);    
+  {    
+    tone(buzzerPin, 400, 200);
+    delay(300);  
     noTone(buzzerPin);
-    delay(200);                                                                                                                                                                                                                                                                                                          
+    delay(300);                                                                                                                                                                                                                                                                                                          
   }
 }
 
