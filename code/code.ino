@@ -366,7 +366,6 @@ void loop()
     }
 
     //Botão foi solto, abrir a porta
-    positivo();
     abre_porta();
   }
 
@@ -420,7 +419,6 @@ void loop()
   else if(busca_membro(UID_loop))
   {
     //Positivo: Abrir a porta
-    positivo();
     abre_porta();
   }
   else
